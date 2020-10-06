@@ -20,8 +20,10 @@ make
 ## Run
 
 ```sh
-./server
+cd test
+
+../build/server
 
 # in separate shell
-./client
+../build/client
 ```

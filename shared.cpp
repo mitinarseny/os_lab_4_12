@@ -1,9 +1,6 @@
 #include "shared.h"
 
-#include <unistd.h>
-#include <errno.h>
-
-#include <system_error>
+#include <stdio.h>
 
 int create_socket(int domain, int type, int protocol) {
 	int soc = ::socket(domain, type, protocol);
@@ -41,26 +38,25 @@ Socket::~Socket() {
 	close_socket(this->soc);
 }
 
-void Socket::send_int(const sockaddr_un& sa, int val) {
-	while (::sendto(this->soc, reinterpret_cast<const void*>(&val), sizeof(val), 0,
-				reinterpret_cast<const sockaddr*>(&sa), sizeof(sa)) == -1) {
-		switch (errno) {
-		case ENOENT:
-		case EINTR:
-		case ECONNREFUSED:
-			::usleep(100);
-			continue;
-		default:
-			throw std::system_error(errno, std::system_category(), "sendto");
-		}
-	}
+void piped_file_closer::operator()(std::FILE* fp) const {
+	::pclose(fp);
 }
 
-int Socket::receive_int(sockaddr_un& sa) {
-	int val;
-	socklen_t addr_len = sizeof(sa);
-	if (::recvfrom(this->soc, reinterpret_cast<void*>(&val), sizeof(val), 0, 
-		reinterpret_cast<sockaddr*>(&sa), &addr_len) == -1)
-		throw std::system_error(errno, std::system_category(), "recvfrom");
-	return val;
+unique_FILE open_piped_command(std::string const& cmd, char const* mode) {
+	std::FILE* p = ::popen(cmd.c_str(), mode);
+	if (p == nullptr)
+		throw std::system_error(errno, std::system_category(), "popen");
+	return unique_FILE{p};
+}
+
+std::string piped_read(std::string const& cmd) {
+	unique_FILE f = open_piped_command(cmd, "r");
+	std::string output;
+	char buf[512];
+	while (auto len = std::fread(buf, sizeof(char), sizeof(buf), f.get()))
+		output.append(buf, len);
+	
+	if (std::ferror(f.get()))
+		throw std::system_error(errno, std::system_category(), "ferror");
+	return output;
 }

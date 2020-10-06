@@ -20,10 +20,10 @@ int main() try {
 
 	Socket server(AF_UNIX, SOCK_DGRAM, 0, server_addr);
 
-	std::cout << "sending to server socket..." << std::endl;
-	server.send_int(client_addr, 1);
-	std::cout << "waiting for message from client socket..." << std::endl;
-	std::cout << server.receive_int(client_addr) << std::endl;
+	std::cout << "sending to client..." << std::endl;
+	server.send(client_addr, read_pipe<int>("ls | file --mime-type -bf - | grep -c 'text/'"));
+	std::cout << "waiting client..." << std::endl;
+	std::cout << "Not command text files: " << server.receive<int>(client_addr) << std::endl;
 } catch (const std::exception& e) {
 	std::cerr << e.what() << std::endl;
 	return EXIT_FAILURE;

@@ -20,10 +20,11 @@ int main() try {
 
 	Socket client(AF_UNIX, SOCK_DGRAM, 0, client_addr);
 
-	std::cout << "waiting for message from server socket..." << std::endl;
-	std::cout << client.receive_int(server_addr) << std::endl;
-	std::cout << "sending to client socket..." << std::endl;
-	client.send_int(server_addr, 2);
+	std::cout << "waiting for server..." << std::endl;
+	auto text_files_count = client.receive<int>(server_addr);
+	std::cout << "Text files: " << text_files_count << std::endl;
+	std::cout << "sending to server..." << std::endl;
+	client.send(server_addr, read_pipe<int>("ls | file --mime-type -bf - | grep -c 'text/x-shellscript'"));
 } catch (const std::exception& e) {
 	std::cerr << e.what() << std::endl;
 	return EXIT_FAILURE;
